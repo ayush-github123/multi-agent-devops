@@ -11,7 +11,7 @@ llm = ChatGoogleGenerativeAI(
 )
 
 REVIEW_PROMPT = PromptTemplate.from_template(
-    """You are a senior Python code reviewer.
+    """You are a senior {language} code reviewer.
 
 Analyse the code below and provide **all** of the following:
 
@@ -23,8 +23,9 @@ Analyse the code below and provide **all** of the following:
    • Return “No” otherwise.
 
 ### CODE
-```python
+```{language}
 {code}
+```
 FORMAT (STRICT)
 Review:
 <your comments here>
@@ -34,9 +35,9 @@ Ready for deployment: Yes|No
 """
 )
 
-def review_code(code: str) -> dict:
+def review_code(code: str, language:str) -> dict:
     """Return dict with keys: review, score (float), ready ('Yes'|'No')."""
-    response = (REVIEW_PROMPT | llm).invoke({"code": code})
+    response = (REVIEW_PROMPT | llm).invoke({"code": code, "language":language})
     content = response.content.strip()
 
     score_match = re.search(r"Score:\s*([0-9]+(?:\.[0-9]+)?)\s*/\s*10", content, re.I)

@@ -11,45 +11,50 @@ llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.7)
 
 # Prompt
 TEST_PROMPT = PromptTemplate.from_template("""
-You are a senior Python developer. Given the following Python code, generate 1–3 unit tests using either `unittest` or `pytest`.
+You are a senior software developer. Given the following code in {language}, generate 1–3 unit tests using the standard testing framework for that language.
 
 CODE:
-```python
+```{language}
 {code}
+```
 Requirements:
 
-Choose between unittest or pytest, and mention it
+Choose the correct test framework (e.g., pytest/unittest for Python, Jest for JavaScript/React, JUnit for Java, etc.)
 
-Tests must be realistic and reflect actual function behavior
+Output realistic, meaningful tests for actual behavior.
 
-Output the result in this format:
+Format:
 
 ---FRAMEWORK---
-unittest OR pytest
+<framework name>
 
 ---TEST CODE---
-<actual test code here>
+<test code>
 
 ---EXPLANATION---
-<short explanation of what the tests cover>
+<brief explanation of what the tests validate>
 """)
 
-def generate_tests(code: str) -> dict:
+def generate_tests(code: str, language: str) -> dict:
     try:
         chain = TEST_PROMPT | llm
-        response = chain.invoke({"code": code})
+        response = chain.invoke({"code": code, "language": language})
         content = response.content.strip()
-        
-        # Parse response
+
         framework = content.split("---FRAMEWORK---")[1].split("---")[0].strip()
         test_code = content.split("---TEST CODE---")[1].split("---")[0].strip()
         explanation = content.split("---EXPLANATION---")[1].strip()
 
+        cleaned_code = test_code
+        if cleaned_code.startswith("```"):
+            cleaned_code = cleaned_code.strip("`").split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+
         return {
             "framework": framework,
-            "test_code": test_code,
+            "test_code": cleaned_code,
             "explanation": explanation
         }
+
 
     except Exception as e:
         return {

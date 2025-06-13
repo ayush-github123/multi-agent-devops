@@ -3,12 +3,10 @@ from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import os
 
-# Load GEMINI API key
 load_dotenv()
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.7)
 
-# Improved Prompt Template
 DEV_PROMPT = PromptTemplate.from_template("""
 You are an expert software engineer proficient in multiple programming languages.
 Given a software development ticket, your job is to write clean, efficient, and minimal code to solve the problem or implement the feature.
@@ -23,7 +21,7 @@ Given a software development ticket, your job is to write clean, efficient, and 
 {language}
 
 Instructions:
-1. Return only a single code file in the specified language.
+1. Return only a single code file in {language}.
 2. Focus on core logic only. Do not include setup, scaffolding, or unnecessary boilerplate.
 3. Add helpful inline comments to explain the logic.
 4. After the code, include a short paragraph explaining what the code does.
@@ -40,7 +38,7 @@ Format your output strictly like this:
 Make sure your response is parsable using the above format.
 """)
 
-def generate_code(summary: str, category: str, language: str = "Python") -> dict:
+def generate_code(summary: str, category: str, language: str) -> dict:
     """
     Generates code based on a ticket summary, category, and programming language.
     Returns structured output with filename, code, and explanation.
@@ -73,20 +71,20 @@ def generate_code(summary: str, category: str, language: str = "Python") -> dict
 
     return result
 
-# Example Usage
-if __name__ == "__main__":
-    ticket = "Add a search bar to filter products by name on the homepage."
-    category = "feature"
-    language = "JavaScript"
+# # Example Usage
+# if __name__ == "__main__":
+#     ticket = "Add a search bar to filter products by name on the homepage."
+#     category = "feature"
+#     language = "JavaScript"
 
-    output = generate_code(ticket, category, language)
+#     output = generate_code(ticket, category, language)
     
-    if "error" in output:
-        print("Error:", output["error"])
-        print("Raw Output:", output["raw"])
-    else:
-        print(f"File: {output['filename']}")
-        print("----- Code -----")
-        print(output["code"])
-        print("----- Explanation -----")
-        print(output["explanation"])
+#     if "error" in output:
+#         print("Error:", output["error"])
+#         print("Raw Output:", output["raw"])
+#     else:
+#         print(f"File: {output['filename']}")
+#         print("----- Code -----")
+#         print(output["code"])
+#         print("----- Explanation -----")
+#         print(output["explanation"])
