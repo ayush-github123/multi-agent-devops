@@ -49,13 +49,14 @@ if st.button("🚀 Run Pipeline"):
 
             try:
                 score = float(review["score"])
+                print(score)
             except (ValueError, TypeError):
                 st.warning(f"⚠️ Invalid score format: {review['score']}. Defaulting to 0.0")
                 score = 0.0
 
             st.subheader(f"📋 Review - Attempt {attempts + 1}")
             st.markdown(f"**Score:** {score}/10")
-            st.markdown(f"**Ready:** {review['ready']}")
+            st.markdown(f"**Ready for Deployment:** {review['ready']}")
             st.expander("💬 Full Review").write(review['review'])
 
             if score > best_score:
@@ -95,7 +96,8 @@ if st.button("🚀 Run Pipeline"):
             st.markdown(f"**✅ Ready for Deployment**: {best_review['ready']}")
             st.expander("🧾 Final Review").write(best_review['review'])
 
-        if best_code_output and best_review and best_review["ready"].lower() == "yes" and not best_test_output:
+        # if best_code_output and best_review and best_review["ready"].lower() == "yes" and not best_test_output:
+        if best_code_output and best_review and not best_test_output:
             with st.spinner("🧪 Final Test Case Generation..."):
                 test_results = generate_tests(best_code_output["code"])
 
