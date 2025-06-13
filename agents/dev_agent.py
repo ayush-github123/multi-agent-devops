@@ -3,65 +3,90 @@ from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import os
 
-# Load GEMINI key
+# Load GEMINI API key
 load_dotenv()
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.7)
 
-# Prompt for code generation
+# Improved Prompt Template
 DEV_PROMPT = PromptTemplate.from_template("""
-You are a professional backend developer. Based on the following ticket summary, generate a Python code file that addresses the feature or bug described.
+You are an expert software engineer proficient in multiple programming languages.
+Given a software development ticket, your job is to write clean, efficient, and minimal code to solve the problem or implement the feature.
 
-SUMMARY: {summary}
-CATEGORY: {category}
+---TICKET SUMMARY---
+{summary}
 
-Requirements:
-- Generate only Python code.
-- Keep it short and minimal — just the core logic.
-- Add comments in the code.
-- Also provide a short explanation of what the code does.
+---CATEGORY---
+{category}
 
-FORMAT:
+---LANGUAGE---
+{language}
+
+Instructions:
+1. Return only a single code file in the specified language.
+2. Focus on core logic only. Do not include setup, scaffolding, or unnecessary boilerplate.
+3. Add helpful inline comments to explain the logic.
+4. After the code, include a short paragraph explaining what the code does.
+
+Format your output strictly like this:
+
 ---FILENAME---
-<filename.py>
+<filename.ext>
 ---CODE---
 <code here>
 ---EXPLANATION---
-<what it does>
+<brief explanation of what this code does>
+
+Make sure your response is parsable using the above format.
 """)
 
-def generate_code(summary: str, category: str) -> dict:
+def generate_code(summary: str, category: str, language: str = "Python") -> dict:
+    """
+    Generates code based on a ticket summary, category, and programming language.
+    Returns structured output with filename, code, and explanation.
+    """
     chain = DEV_PROMPT | llm
-    response = chain.invoke({"summary": summary, "category": category})
+    response = chain.invoke({
+        "summary": summary,
+        "category": category,
+        "language": language,
+    })
 
     content = response.content.strip()
-    result = {"language": "Python"}
-    
-    # Simple parsing
+    result = {"language": language}
+
+    # Parsing the structured output
     try:
         filename = content.split("---FILENAME---")[1].split("---")[1].strip()
         code = content.split("---CODE---")[1].split("---")[0].strip()
         explanation = content.split("---EXPLANATION---")[1].strip()
 
-        result["filename"] = filename
-        result["code"] = code
-        result["explanation"] = explanation
+        result.update({
+            "filename": filename,
+            "code": code,
+            "explanation": explanation
+        })
+
     except Exception as e:
         result["error"] = f"Failed to parse LLM output: {str(e)}"
         result["raw"] = content
 
     return result
 
-# Example usage
-# if __name__ == "__main__":
-    # ticket = """App crashes when uploading a PNG image larger than 5MB on the user profile page."""
-    # result = classify_ticket(ticket_text=ticket)
-    # summary = result["summary"]
-    # category = result["category"]
-    # output = generate_code(summary, category)
+# Example Usage
+if __name__ == "__main__":
+    ticket = "Add a search bar to filter products by name on the homepage."
+    category = "feature"
+    language = "JavaScript"
+
+    output = generate_code(ticket, category, language)
     
-    # print(f"File: {output['filename']}")
-    # print("----- Code -----")
-    # print(output["code"])
-    # print("----- Explanation -----")
-    # print(output["explanation"])
+    if "error" in output:
+        print("Error:", output["error"])
+        print("Raw Output:", output["raw"])
+    else:
+        print(f"File: {output['filename']}")
+        print("----- Code -----")
+        print(output["code"])
+        print("----- Explanation -----")
+        print(output["explanation"])
