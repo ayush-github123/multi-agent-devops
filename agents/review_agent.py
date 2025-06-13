@@ -1,42 +1,64 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from dotenv import load_dotenv
 from langchain.prompts import PromptTemplate
+import re, os
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.7)
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.0-flash",
+    temperature=0.7,
+)
 
+REVIEW_PROMPT = PromptTemplate.from_template(
+    """You are a senior Python code reviewer.
 
-REVIEW_PROMPT = PromptTemplate.from_template("""
-You are a senior Python code reviewer. Review the following code snippet and do the following:
-1. Identify any bugs or syntax errors.
-2. Suggest improvements or optimizations.
-3. Give a score out of 10 for code quality.
-4. Mention whether the code is ready for deployment or needs changes.
+Analyse the code below and provide **all** of the following:
 
-CODE:
+1. A short review summarising any issues, bugs, or improvements.
+2. A list of specific suggested changes (if any).
+3. A quality rating **out of 10** (higher = better).
+4. **Ready for deployment?**  
+   • Return **exactly** “Yes” if there are **no critical bugs or minute(ignorable) bugs and quality ≥ 8**.  
+   • Return “No” otherwise.
+
+### CODE
 ```python
 {code}
-                                             
-FORMAT:
+FORMAT (STRICT)
 Review:
+<your comments here>
 
-<your comments>
-Score: <score>/10
-Ready for deployment: Yes/No
-""")
+Score: <number>/10
+Ready for deployment: Yes|No
+"""
+)
 
 def review_code(code: str) -> dict:
-    chain = REVIEW_PROMPT | llm
-    response = chain.invoke({"code": code})
-    lines = response.content.strip().splitlines()
-    review_lines = [line for line in lines if not line.startswith("Score") and not line.startswith("Ready")]
+    """Return dict with keys: review, score (float), ready ('Yes'|'No')."""
+    response = (REVIEW_PROMPT | llm).invoke({"code": code})
+    content = response.content.strip()
 
-    score = next((line.split(":")[1].strip() for line in lines if line.startswith("Score")), "N/A")
-    ready = next((line.split(":")[1].strip() for line in lines if line.startswith("Ready")), "N/A")
+    score_match = re.search(r"Score:\s*([0-9]+(?:\.[0-9]+)?)\s*/\s*10", content, re.I)
+    score = float(score_match.group(1)) if score_match else 0.0
+
+    ready_match = re.search(r"Ready\s*for\s*deployment:\s*(Yes|No)\b", content, re.I)
+    if ready_match:
+        ready = ready_match.group(1).capitalize()
+    else:
+        # Fallback: infer from score threshold 8.0
+        ready = "Yes" if score >= 8.0 else "No"
+
+    cleaned_lines = [
+        ln for ln in content.splitlines()
+        if not re.match(r"\s*Score:", ln, re.I)
+        and not re.match(r"\s*Ready\s*for\s*deployment:", ln, re.I)
+        and ln.strip()  # keep non‑empty
+    ]
+    review_text = "\n".join(cleaned_lines).strip()
 
     return {
-        "review": "\n".join(review_lines),
-        "score": score,
-        "ready": ready
+        "review": review_text,
+        "score":  score,
+        "ready":  ready
     }
