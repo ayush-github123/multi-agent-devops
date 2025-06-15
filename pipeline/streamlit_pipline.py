@@ -8,6 +8,8 @@ from agents.dev_agent import generate_code
 from agents.review_agent import review_code
 from agents.test_agent import generate_tests
 from agents.improve_agent import improve_code
+from agents.explain_agent import explain_code
+from utils.run_test import run_python_tests
 
 MAX_ATTEMPTS = 3
 REVIEW_THRESHOLD = 7.0
@@ -42,13 +44,15 @@ if st.button("🚀 Run Pipeline"):
         best_review = None
         best_code_output = None
         best_test_output = None
+        feedback_for_retry = None
 
         while attempts < MAX_ATTEMPTS:
             with st.spinner(f"💻 Running DevAgent (Attempt {attempts + 1})..."):
                 code_output = generate_code(
                     ticket_info['summary'],
                     ticket_info['category'],
-                    ticket_info["language"].lower()
+                    ticket_info["language"].lower(),
+                    feedback_for_retry
                 )
 
             st.subheader(f"📁 Code Output - Attempt {attempts + 1}")
@@ -89,14 +93,29 @@ if st.button("🚀 Run Pipeline"):
                 else:
                     st.markdown(f"**Framework**: `{test_results['framework']}`")
                     st.code(test_results["test_code"], language=ticket_info["language"].lower())
-                    st.expander("💡 Explanation").write(test_results["explanation"])
+                    st.expander("💡 What the Tests Cover").write(test_results["explanation"])
                     best_test_output = test_results
+
+                    # if ticket_info["language"].lower() == "python":
+                    #     st.subheader("📊 Test Execution Result")
+                    #     test_run_result = run_python_tests(best_test_output["test_code"])
+
+                    #     if "error" in test_run_result:
+                    #         st.error("❌ Error running test code")
+                    #         st.text(test_run_result["error"])
+                    #     else:
+                    #         st.code(test_run_result["stdout"] or "✅ All tests passed!", language="bash")
+                    #         if test_run_result["stderr"]:
+                    #             st.error("⚠️ Warnings/Errors:")
+                    #             st.code(test_run_result["stderr"], language="bash")
+
                 break
 
+            feedback_for_retry = review.get("review", "")
             st.warning(f"⚠️ Score {score} is below threshold ({REVIEW_THRESHOLD}). Retrying...\n")
             attempts += 1
 
-        # ✅ Save pipeline state
+        # Save pipeline state
         st.session_state.pipeline_ran = True
         st.session_state["ticket_info"] = ticket_info
         st.session_state["best_code_output"] = best_code_output
@@ -104,7 +123,7 @@ if st.button("🚀 Run Pipeline"):
         st.session_state["test_results"] = best_test_output
         st.session_state.improved_code = None  # reset previous improvement
 
-# ✅ DISPLAY FINAL OUTPUT AFTER PIPELINE
+# DISPLAY FINAL OUTPUT AFTER PIPELINE
 if st.session_state.get("pipeline_ran", False):
     ticket_info = st.session_state["ticket_info"]
     best_code_output = st.session_state["best_code_output"]
@@ -122,6 +141,39 @@ if st.session_state.get("pipeline_ran", False):
         st.markdown(f"**✅ Ready for Deployment**: {best_review['ready']}")
         st.expander("🧾 Final Review").write(best_review['review'])
 
+    if best_code_output:
+        if st.button("🧠 Explain This Code"):
+            with st.spinner("Thinking..."):
+                explanation = explain_code(best_code_output['code'])
+                st.subheader("📖 Code Explanation")
+                st.write(explanation)
+
+    if best_code_output:
+        st.divider()
+        st.subheader("✍️ Edit & Re-Review")
+
+        edited_code = st.text_area(
+            "📝 Modify the generated code (if needed):",
+            value=best_code_output['code'],
+            height=300,
+            key="manual_edit"
+        )
+
+        if st.button("🕵️ Re-run ReviewAgent"):
+            with st.spinner("Re-reviewing your edited code..."):
+                edited_review = review_code(edited_code, ticket_info["language"].lower())
+
+            try:
+                new_score = float(edited_review["score"])
+            except Exception:
+                new_score = 0.0
+
+            st.subheader("📋 New Review (After Edit)")
+            st.markdown(f"**Score:** {new_score}/10")
+            st.markdown(f"**Ready for Deployment:** {edited_review['ready']}")
+            st.expander("💬 Full Review").write(edited_review["review"])
+
+
     if best_test_output:
         st.subheader("✅ Final Unit Tests")
         if "error" in best_test_output:
@@ -133,7 +185,7 @@ if st.session_state.get("pipeline_ran", False):
             st.code(best_test_output["test_code"], language=ticket_info["language"].lower())
             st.expander("💡 What the Tests Cover").write(best_test_output["explanation"])
 
-# 🔁 IMPROVE CODE SECTION (Always available after pipeline run)
+# IMPROVE CODE SECTION (Always available after pipeline run)
 if st.session_state.get("best_code_output") and st.session_state.get("ticket_info"):
     st.divider()
     st.subheader("🧠 Improve your Code")
