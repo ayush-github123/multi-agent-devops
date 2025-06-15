@@ -34,7 +34,6 @@ Format:
 
 ---EXPLANATION---
 <brief explanation of what the tests validate>
-
 """)
 
 def generate_tests(code: str, language: str) -> dict:
