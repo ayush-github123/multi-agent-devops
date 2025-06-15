@@ -19,7 +19,8 @@ CODE:
 ```
 Requirements:
 
-Choose the correct test framework (e.g., pytest/unittest for Python, Jest for JavaScript/React, JUnit for Java, etc.)
+Choose the correct test framework (e.g., pytest/unittest for Python, Jest for JavaScript/React, JUnit for Java, etc.).
+Also return a suitable filename according to the framework used.
 
 Output realistic, meaningful tests for actual behavior.
 
@@ -33,6 +34,7 @@ Format:
 
 ---EXPLANATION---
 <brief explanation of what the tests validate>
+
 """)
 
 def generate_tests(code: str, language: str) -> dict:

@@ -38,12 +38,18 @@ Format your output strictly like this:
 Make sure your response is parsable using the above format.
 """)
 
-def generate_code(summary: str, category: str, language: str) -> dict:
+def generate_code(summary: str, category: str, language: str, feedback: str=None) -> dict:
     """
     Generates code based on a ticket summary, category, and programming language.
     Returns structured output with filename, code, and explanation.
     """
-    chain = DEV_PROMPT | llm
+    dev_prompt = DEV_PROMPT.template
+    if feedback:
+        dev_prompt = PromptTemplate.from_template(dev_prompt + f"\nPrevious feedback to improve on:\n{feedback}")
+        chain = dev_prompt | llm
+    else:
+        chain = DEV_PROMPT | llm
+        
     response = chain.invoke({
         "summary": summary,
         "category": category,
@@ -70,21 +76,3 @@ def generate_code(summary: str, category: str, language: str) -> dict:
         result["raw"] = content
 
     return result
-
-# # Example Usage
-# if __name__ == "__main__":
-#     ticket = "Add a search bar to filter products by name on the homepage."
-#     category = "feature"
-#     language = "JavaScript"
-
-#     output = generate_code(ticket, category, language)
-    
-#     if "error" in output:
-#         print("Error:", output["error"])
-#         print("Raw Output:", output["raw"])
-#     else:
-#         print(f"File: {output['filename']}")
-#         print("----- Code -----")
-#         print(output["code"])
-#         print("----- Explanation -----")
-#         print(output["explanation"])
