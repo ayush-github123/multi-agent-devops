@@ -10,6 +10,7 @@ from agents.test_agent import generate_tests
 from agents.improve_agent import improve_code
 from agents.explain_agent import explain_code
 from utils.run_test import run_python_tests
+from utils.zip_file import create_export_zip 
 
 MAX_ATTEMPTS = 3
 REVIEW_THRESHOLD = 7.0
@@ -159,7 +160,7 @@ if st.session_state.get("pipeline_ran", False):
             key="manual_edit"
         )
 
-        if st.button("🕵️ Re-run ReviewAgent"):
+        if st.button("🕵️ Re-run ReviewAgent", key="review_button"):
             with st.spinner("Re-reviewing your edited code..."):
                 edited_review = review_code(edited_code, ticket_info["language"].lower())
 
@@ -204,3 +205,38 @@ if st.session_state.get("best_code_output") and st.session_state.get("ticket_inf
     if st.session_state.improved_code:
         st.subheader("🔧 Code Improved Based on Your Feedback")
         st.code(st.session_state.improved_code, language=st.session_state["ticket_info"]["language"].lower())
+
+        if st.button("🧠 Explain This Code", key="explain_code"):
+            with st.spinner("Thinking..."):
+                explanation = explain_code(st.session_state.improved_code)
+                st.subheader("📖 Improved Code Explanation")
+                st.write(explanation)
+
+
+    #Export to ZIP File
+    if best_code_output:
+        st.divider()
+        st.subheader("📦 Export Final Output")
+
+        export_code    = best_code_output["code"]
+        export_fname   = best_code_output["filename"]
+        print(export_fname)
+        export_tests   = best_test_output.get("test_code") if best_test_output else None
+        export_review  = best_review["review"] if best_review else None
+        export_impcode = st.session_state.get("improved_code", None)   
+
+        zip_bytes = create_export_zip(
+            code          = export_code,
+            filename      = export_fname,
+            test_code     = export_tests,
+            review        = export_review,
+            improved_code = export_impcode,
+            language      = ticket_info["language"]
+        )
+
+        st.download_button(
+            label      = "⬇️ Download ZIP",
+            data       = zip_bytes,
+            file_name  = "devpilot_output.zip",
+            mime       = "application/zip"
+        )
