@@ -1,7 +1,7 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
-import os
+import os, re
 
 load_dotenv()
 
@@ -25,11 +25,12 @@ Instructions:
 2. Focus on core logic only. Do not include setup, scaffolding, or unnecessary boilerplate.
 3. Add helpful inline comments to explain the logic.
 4. After the code, include a short paragraph explaining what the code does.
+5. Return the filename with it's respective extension according to the programming language used in code.
 
 Format your output strictly like this:
 
 ---FILENAME---
-<filename.ext>
+<filename.extension>
 ---CODE---
 <code here>
 ---EXPLANATION---
@@ -53,7 +54,7 @@ def generate_code(summary: str, category: str, language: str, feedback: str=None
     response = chain.invoke({
         "summary": summary,
         "category": category,
-        "language": language,
+        "language": language
     })
 
     content = response.content.strip()
@@ -61,9 +62,16 @@ def generate_code(summary: str, category: str, language: str, feedback: str=None
 
     # Parsing the structured output
     try:
-        filename = content.split("---FILENAME---")[1].split("---")[1].strip()
-        code = content.split("---CODE---")[1].split("---")[0].strip()
-        explanation = content.split("---EXPLANATION---")[1].strip()
+        match = re.search(
+                r"---FILENAME---\s*(.+?)\s*---CODE---\s*(.+?)\s*---EXPLANATION---\s*(.+)", 
+                content, 
+                re.DOTALL
+            )
+
+        if match:
+            filename = match.group(1).strip()
+            code = match.group(2).strip()
+            explanation = match.group(3).strip()
 
         result.update({
             "filename": filename,
