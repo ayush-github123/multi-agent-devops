@@ -1,3 +1,59 @@
+# Environment
 .env
-.sqlite3
-graph.txt
+*.env
+.env.*
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# SQLite or other DBs
+*.sqlite3
+*.db
+
+# Logs
+*.log
+
+# Jupyter (if you use notebooks)
+.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Byte-compiled / cache
+*.pyo
+*.pyd
+*.pyc
+
+# Virtualenv / Conda
+venv/
+env/
+.venv/
+.env/
+.conda/
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/config.toml
+
+# Coverage / testing
+htmlcov/
+.coverage
+coverage.xml
+
+
+features.txt
+graphs 
+utils/run_test.py
+pipeline/streamlit_pipelineV1.py
