@@ -20,7 +20,7 @@ Instructions:
 
 Improve the code based on the feedback.
 
-Return only the improved code followed by bullet points listing what was improved.
+Return only the improved code followed by bullet points listing what was improved as comments.
 
 Do not use markdown syntax (no triple backticks, no headings).
 
@@ -38,8 +38,7 @@ def improve_code(code: str, feedback: str, language: str) -> str:
         chain = IMPROVE_PROMPT | llm
         result = chain.invoke({"code": code, "feedback": feedback, "language": language})
         content = result.content.strip()
-        print(content)
-
+        
         # Remove triple backticks and language labels if any slipped through
         cleaned = content.replace("```", "").replace(language, "").strip()
 
